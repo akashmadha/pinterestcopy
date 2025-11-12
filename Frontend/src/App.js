@@ -1,69 +1,139 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+
+// 🧱 Authentication components
 import Register from "./Component/sign_up_pages/Register";
 import Login from "./Component/sign_up_pages/Login";
-import Home from "./Component/sign_up_pages/Home";
-import Navbar from "./Component/Navbar/Navbar"; 
-import Sidebar from "./Component/Navbar/Sidebar"; 
+import Logout from "./Component/sign_up_pages/Logout";
+
+// 🧭 Layout + UI components
+import Navbar from "./Component/Navbar-Bucket/Navbar";
+import Sidebar from "./Component/Navbar-Bucket/Sidebar";
+import Navigation from "./Component/Navbar-Bucket/Navigation";
 import PinterestAPI from "./Component/PinterestAPI";
-import Navigation from './Component/Navbar/Navigation';
-import Hero from "./Component/Hero";
-import Footer from './Component/Footer/Footer';
-import SignUpSection from "./Component/sign_up_pages/SignUpSection";
-import SearchSection from "./Component/SearchSection";
-import SearchBar from './Component/SearchBar';
-import MakeupSection from "./Component/MakeupSection";
-import "./App.css"
+import Profile from "./Component/Navbar-Bucket/Profile";
+
+// 🧩 Sidebar-linked routes
+import Create from './Component/sidebar_buttons/Create';
+import Explore from './Component/sidebar_buttons/Explore';
+import Messages from './Component/sidebar_buttons/Messages';
+import Home from './Component/Home';
+import Notifications from './Component/sidebar_buttons/Notifications';
 
 function App() {
-  const [search, setSearch] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Track user login status
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [showPassword, setShowPassword] = useState(false);
+  // ✅ Track if the user is logged in
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const slides = [
-    'chai time snacks idea',
-    'evening tea recipes',
-    'Indian snack inspiration',
-    'tea time treats'
+  // ✅ Search + tags state shared between Navbar & PinterestAPI
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTags, setSelectedTags] = useState([]);
+
+  // 🧭 useLocation helps determine the current route
+  const location = useLocation();
+
+  // 🧾 Define pages where the sidebar/navbar should be hidden
+  const pagesWithoutSidebarNavbar = [
+    "/explore",
+    "/create",
+    "/messages",
+    "/notifications",
+    "/Profile",
+    "/login",
+    "/register",
   ];
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 3000);
+  // ⚙️ Boolean — true if current page is in the "hide" list
+  const hideSidebarNavbar = pagesWithoutSidebarNavbar.includes(location.pathname);
 
-    return () => clearInterval(timer);
-  }, []);
+  // 🧩 Whenever the URL changes, check if user is logged in
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    setIsAuthenticated(!!token); // Convert token existence → boolean
+  }, [location.pathname]);
+
+  // ============================================================
+  // 🚀 RETURN: Decide between Authenticated vs Unauthenticated UI
+  // ============================================================
 
   return (
-    <Router>
-      {isLoggedIn ? (
-        // Render the first layout when the user is logged in
+    <>
+      {!isAuthenticated ? (
+        // ----------------------------
+        // 👤 NOT LOGGED IN
+        // ----------------------------
         <>
-          <Sidebar />
-          <div className='pin_nav_continer'>
-            <Navbar search={search} setSearch={setSearch} />
-            <PinterestAPI search={search} />
+          {/* Top navigation bar (likely includes logo/login buttons) */}
+          <Navigation setIsAuthenticated={setIsAuthenticated} />
+
+          {/* Main page layout for unauthenticated users */}
+          <div
+            style={{
+              paddingTop: "80px",
+              minHeight: "100vh",
+              backgroundColor: "#f7f7f7",
+            }}
+          >
+            <Routes>
+              {/* 🪪 Auth routes */}
+              <Route
+                path="/login"
+                element={<Login setIsAuthenticated={setIsAuthenticated} />}
+              />
+              <Route
+                path="/register"
+                element={<Register setIsAuthenticated={setIsAuthenticated} />}
+              />
+              {/* Any other route redirects to login */}
+              <Route path="*" element={<Navigate to="/login" />} />
+            </Routes>
           </div>
-          <Routes>
-            <Route path="/" element={<PinterestAPI search={search} />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/login" element={<Login />} />
-          </Routes>
         </>
       ) : (
-        // Render the second layout when the user is not logged in
-        <div className="min-h-screen bg-white">
-          <Navigation setIsLoggedIn={setIsLoggedIn} />
-          <Hero currentSlide={currentSlide} slides={slides} />
-          <SearchSection />
-          <MakeupSection />
-          <SignUpSection showPassword={showPassword} setShowPassword={setShowPassword} />
-          <Footer />
-        </div>
+        // ----------------------------
+        // 🔒 LOGGED IN LAYOUT
+        // ----------------------------
+        <>
+          {/* Sidebar visible for navigation */}
+          <Sidebar />
+
+          {/* Conditional rendering: Hide navbar + Pinterest feed if not needed */}
+          {!hideSidebarNavbar && (
+            <div className="pin_nav_continer">
+              {/* 🧭 Navbar controls search and filter */}
+              <Navbar
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                selectedTags={selectedTags}
+                setSelectedTags={setSelectedTags}
+              />
+
+              {/* 🖼️ Pinterest-style image feed based on search + tags */}
+              <PinterestAPI
+                searchQuery={searchQuery}
+                selectedTags={selectedTags}
+              />
+            </div>
+          )}
+
+          {/* 🚦 App routes (pages linked from sidebar) */}
+          <Routes>
+            <Route path="/home" element={<Home />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/explore" element={<Explore />} />
+            <Route path="/create" element={<Create />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route
+              path="/logout"
+              element={<Logout setIsAuthenticated={setIsAuthenticated} />}
+            />
+            {/* Default redirect if route doesn’t match */}
+            <Route path="*" element={<Navigate to="/home" />} />
+          </Routes>
+        </>
       )}
-    </Router>
+    </>
   );
 }
 

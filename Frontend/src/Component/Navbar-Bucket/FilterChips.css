@@ -1,0 +1,27 @@
+.chip-container {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 8px 0;
+}
+
+.chip {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  background-color: #f8f8f8;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.chip.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.chip:hover {
+  background-color: #e8e8e8;
+}

@@ -1,94 +1,106 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Download, Bookmark } from 'lucide-react';
-import './PinterestAPI.css';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import useDebounce from "../hooks/useDebounce"; // ✅ custom hook to delay the API call while typing
+import "./PinterestAPI.css";
 
-function PinterestAPI({ search }) {
-  const [images, setImages] = useState([]);
-  const [filteredImages, setFilteredImages] = useState([]);
-  const [savedImages, setSavedImages] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+// ✅ Main component that fetches and displays images
+function PinterestAPI({ searchQuery = "", selectedTags = [] }) {
+  // --------------------
+  // 🧠 STATE VARIABLES
+  // --------------------
+  const [images, setImages] = useState([]);     // stores list of fetched images
+  const [loading, setLoading] = useState(false); // true while API is fetching
+  const [error, setError] = useState(null);      // stores error messages if fetch fails
 
-  const pixabayAPIKey = '48656670-3136fdbaccdd21d1e52a24eb0';
+  // ✅ Pixabay API key
+  const pixabayAPIKey = "48656670-3136fdbaccdd21d1e52a24eb0";
 
+  // --------------------
+  // ⏳ DEBOUNCE LOGIC
+  // --------------------
+  // useDebounce delays updates to searchQuery by 600ms
+  // This means the API won't run until the user stops typing for 600ms
+  const debouncedSearch = useDebounce(searchQuery, 600);
+
+  // --------------------
+  // 🔍 FETCH IMAGES FUNCTION
+  // --------------------
   const fetchImages = async () => {
+    // 🧩 Step 1: If nothing is searched and no tags are selected, clear results
+    if (!debouncedSearch && selectedTags.length === 20) {
+      setImages([]);
+      return;
+    }
+
+    // 🧩 Step 2: Prepare for API call
     setLoading(true);
+    setError(null);
+
     try {
-      const response = await axios.get('https://pixabay.com/api/', {
+      // Combine search text + selected tags into one query string
+      const q = [debouncedSearch, ...selectedTags].join(" ");
+
+      // 🧩 Step 3: Make GET request to Pixabay API
+      const res = await axios.get("https://pixabay.com/api/", {
         params: {
-          key: pixabayAPIKey,
-          image_type: 'photo',
-          per_page: 30,
-          orientation: 'horizontal',
+          key: pixabayAPIKey, // your API key
+          q,                  // query (keywords)
+          image_type: "photo",
+          per_page: 30,       // number of images per fetch
+          orientation: "horizontal",
         },
       });
 
-      if (response.data.hits.length > 0) {
-        const transformedData = response.data.hits.map(item => ({
-          id: item.id,
-          url: item.largeImageURL,
-          title: item.tags,
-         
-        }));
-        setImages(transformedData);
-        setFilteredImages(transformedData);
-      } else {
-        setError('No images found');
-        setImages([]);
-      }
+      // 🧩 Step 4: Extract useful data (id, url, title) from response
+      const imgs = res.data.hits.map((item) => ({
+        id: item.id,
+        url: item.largeImageURL,
+        title: item.tags,
+      }));
+
+      // ✅ Save fetched images to state
+      setImages(imgs);
+
     } catch (err) {
-      setError('Error fetching images: ' + err.message);
-      setImages([]);
+      // ❌ Catch and display any fetch errors
+      setError("Error fetching images: " + err.message);
     } finally {
+      // ✅ Always stop loading state (success or error)
       setLoading(false);
     }
   };
 
+  // --------------------
+  // 🔁 SIDE EFFECT (fetch data)
+  // --------------------
   useEffect(() => {
+    // Runs fetchImages whenever:
+    // - debouncedSearch (after typing stops)
+    // - selectedTags (filter chips) changes
+    // - searchQuery changes
     fetchImages();
-  }, []);
+  }, [debouncedSearch, searchQuery, selectedTags]);
 
-  useEffect(() => {
-    const filtered = images.filter(image =>
-      image.title.toLowerCase().includes(search.toLowerCase())
-    );
-    setFilteredImages(filtered);
-  }, [search, images]);
- // Function to correctly handle image downloads
- const handleDownload = (url) => {
-  const link = document.createElement("a"); 
-  link.href = url;
-  link.download = "image.jpg"; // Customizable filename
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  if (loading) return <div className="gallery-container"><h1>Loading...</h1></div>;
-  if (error) return <div className="gallery-container"><h1>Error: {error}</h1></div>;
- };
+  // --------------------
+  // 🎨 RENDER UI
+  // --------------------
   return (
     <div className="gallery-container">
-      <div className="gallery-wrapper">
+      {/* Show loading, error, or images */}
+      {loading ? (
+        <p>Loading...</p>
+      ) : error ? (
+        <p>{error}</p>
+      ) : (
         <div className="image-grid">
-          {filteredImages.map((image) => (
-            <div key={image.id} className="image-card">
-              <img src={image.url} alt={image.title} />
-              <div className="image-overlay">
-                <div className="button-container">
-                  {/* Updated download button to use handleDownload function */}
-                  <button onClick={() => handleDownload(image.downloadUrl)} className="action-button download" title="Download Image">
-                    <Download size={20} color="#374151" />
-                  </button>
-                  <button onClick={() => setSavedImages([...savedImages, image.id])} className="action-button save" title="Save Image">
-                    <Bookmark size={20} color={savedImages.includes(image.id) ? '#ffffff' : '#374151'} />
-                  </button>
-                </div>
-              </div>
+          {images.map((img) => (
+            <div key={img.id} className="image-card">
+              <img src={img.url} alt={img.title} />
             </div>
           ))}
         </div>
-      </div>
-    </div>  
+      )}
+    </div>
   );
 }
 
