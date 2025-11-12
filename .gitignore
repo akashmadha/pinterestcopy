@@ -1,0 +1,6 @@
+# Ignore Python virtual environments and build folders
+**/env/
+**/venv/
+**/Scripts/
+**/__pycache__/
+*.pyc
