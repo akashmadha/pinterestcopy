@@ -5,10 +5,14 @@ Django settings or Backend project.
 from pathlib import Path
 from datetime import timedelta
 import os
-from dotenv import load_dotenv
+import dj_database_url
 
-# Load .env file
-load_dotenv()
+if os.environ.get("RENDER"):
+    pass  # On Render, environment variables are injected automatically
+else:
+    from dotenv import load_dotenv
+    load_dotenv()
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -93,18 +97,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'Backend.wsgi.application'
 
-# Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv("DB_NAME"),
-        'USER': os.getenv("DB_USER"),
-        'PASSWORD': os.getenv("DB_PASSWORD"),
-        'HOST': os.getenv("DB_HOST"),
-        'PORT': os.getenv("DB_PORT"),
-    }
-}
+import dj_database_url
 
+DATABASES = {
+    'default': dj_database_url.config(default=os.getenv("DATABASE_URL"))
+}
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {
