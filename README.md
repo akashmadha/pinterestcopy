@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
@@ -133,3 +134,6 @@ This project includes three key React components that handle user authentication
 - Implement persistent authentication with token refresh.
 - Improve UI/UX with additional animations and styling.
 
+=======
+# pinterestcopy
+>>>>>>> 28c37847dc788a433bd4f64543396c5debf13cba
