@@ -1,29 +1,60 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import API_BASE_URL from "../../config";
+import { useCopilotReadable } from '@copilotkit/react-core';
 
-const Register = ({ setIsAuthenticated }) => {
+const Register = ({ setIsAuthenticated, onClose }) => {
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
+    const navigate = useNavigate();
+
+    useCopilotReadable({
+  description: "User registration form",
+  value: `Username: ${username || 'empty'}, Email: ${email || 'empty'}, Message: ${message || 'none'}`
+});
 
     const handleRegister = async (e) => {
         e.preventDefault();
+        setMessage(""); // Clear previous messages
 
-        const response = await fetch("https://pinterestclone-backend.onrender.com/api/register/", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, email, password }),
-        });
+        console.log("🔄 Attempting registration...");
 
-        const data = await response.json();
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/register/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, email, password }),
+            });
 
-        if (response.ok) {
-            setMessage("Registration successful! Redirecting...");
-            setTimeout(() => {
-                window.location.href = "/login"; // Redirect to login page
-            }, 1500);
-        } else {
-            setMessage(data.error || "Registration failed. Try again.");
+            const data = await response.json();
+            console.log("📦 Registration response:", data);
+
+            if (response.ok) {
+                setMessage("Registration successful! ✅");
+                
+                // ✅ If the backend returns tokens on registration, save them
+                if (data.access && data.refresh) {
+                    localStorage.setItem("accessToken", data.access);
+                    localStorage.setItem("refreshToken", data.refresh);
+                    setIsAuthenticated(true);
+                    console.log("💾 Tokens saved after registration");
+                }
+                
+                setTimeout(() => {
+                    if (onClose) onClose(); // Close popup if exists
+                    navigate("/login"); // Redirect to login page
+                }, 1500);
+            } else {
+                // ✅ Show specific error messages from backend
+                const errorMsg = data.error || data.username?.[0] || data.email?.[0] || data.password?.[0] || "Registration failed. Try again.";
+                setMessage(errorMsg);
+                console.error("❌ Registration failed:", data);
+            }
+        } catch (error) {
+            console.error("❌ Network error:", error);
+            setMessage("Network error. Please try again.");
         }
     };
 
@@ -58,7 +89,8 @@ const Register = ({ setIsAuthenticated }) => {
                         color: message.includes('successful') ? '#155724' : '#721c24',
                         border: `1px solid ${message.includes('successful') ? '#c3e6cb' : '#f5c6cb'}`,
                         borderRadius: '4px',
-                        marginBottom: '15px'
+                        marginBottom: '15px',
+                        fontSize: '14px'
                     }}>
                         {message}
                     </p>
@@ -82,8 +114,11 @@ const Register = ({ setIsAuthenticated }) => {
                                 borderRadius: '16px', 
                                 fontSize: '16px',
                                 outline: 'none',
-                                boxSizing: 'border-box'
+                                boxSizing: 'border-box',
+                                transition: 'border-color 0.3s'
                             }}
+                            onFocus={(e) => e.target.style.borderColor = '#e60023'}
+                            onBlur={(e) => e.target.style.borderColor = '#ddd'}
                         />
                     </div>
 
@@ -104,8 +139,11 @@ const Register = ({ setIsAuthenticated }) => {
                                 borderRadius: '16px', 
                                 fontSize: '16px',
                                 outline: 'none',
-                                boxSizing: 'border-box'
+                                boxSizing: 'border-box',
+                                transition: 'border-color 0.3s'
                             }}
+                            onFocus={(e) => e.target.style.borderColor = '#e60023'}
+                            onBlur={(e) => e.target.style.borderColor = '#ddd'}
                         />
                     </div>
 
@@ -126,8 +164,11 @@ const Register = ({ setIsAuthenticated }) => {
                                 borderRadius: '16px', 
                                 fontSize: '16px',
                                 outline: 'none',
-                                boxSizing: 'border-box'
+                                boxSizing: 'border-box',
+                                transition: 'border-color 0.3s'
                             }}
+                            onFocus={(e) => e.target.style.borderColor = '#e60023'}
+                            onBlur={(e) => e.target.style.borderColor = '#ddd'}
                         />
                     </div>
 
@@ -143,8 +184,11 @@ const Register = ({ setIsAuthenticated }) => {
                             fontSize: '16px', 
                             fontWeight: 'bold',
                             cursor: 'pointer',
-                            marginTop: '10px'
+                            marginTop: '10px',
+                            transition: 'background-color 0.3s'
                         }}
+                        onMouseOver={(e) => e.target.style.backgroundColor = '#ad081b'}
+                        onMouseOut={(e) => e.target.style.backgroundColor = '#e60023'}
                     >
                         Continue
                     </button>
@@ -153,6 +197,13 @@ const Register = ({ setIsAuthenticated }) => {
                 <p style={{ marginTop: '20px', color: '#767676' }}>
                     Already have an account? <a href="/login" style={{ color: '#e60023', textDecoration: 'none', fontWeight: 'bold' }}>Log in here</a>
                 </p>
+
+                {/* Debug Info */}
+                <div style={{ marginTop: '20px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', fontSize: '12px', color: '#666' }}>
+                    <strong>Debug Info:</strong>
+                    <br />
+                    Tokens in localStorage: {localStorage.getItem("accessToken") ? "Yes ✅" : "No ❌"}
+                </div>
             </div>
         </div>
     );

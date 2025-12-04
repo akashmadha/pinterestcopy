@@ -1,8 +1,13 @@
 import React from 'react';
 import { FaSearch } from 'react-icons/fa';
 import './SearchIdea.css'; // Import the external CSS file
+import { useCopilotReadable } from '@copilotkit/react-core';
 
 function SearchSection() {
+  useCopilotReadable({
+  description: "Search inspiration section",
+  value: "Showing search example: 'easy chicken dinner' with explore options"
+});
   return (
     <section id="scroll-target" className="search-section next-section">
       <div className="search-container">

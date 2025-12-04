@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
+import { useCopilotReadable } from '@copilotkit/react-core';
 const Logout = ({ setIsAuthenticated }) => {
     const navigate = useNavigate();
 
@@ -9,7 +9,10 @@ const Logout = ({ setIsAuthenticated }) => {
         setIsAuthenticated(false); // ✅ Update state
         navigate("/login"); // ✅ Redirect to login page
     }, [navigate, setIsAuthenticated]);
-
+useCopilotReadable({
+  description: "User logout process",
+  value: "User is being logged out and redirected to login page"
+});
     return <h2>Logging out...</h2>;
 };
 

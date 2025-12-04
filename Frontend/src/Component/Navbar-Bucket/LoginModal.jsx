@@ -1,29 +1,58 @@
 import React, { useState } from 'react';
+import { useCopilotReadable } from '@copilotkit/react-core'; 
+import API_BASE_URL from '../../config';
 
 function LoginModal({ isOpen, onClose, onLogin }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
+
+    // ✅ ADD THIS: Share login form state with AI
+    useCopilotReadable({
+        description: "Current login form state",
+        value: `Login modal: ${isOpen ? 'open' : 'closed'}, Username: ${username || 'empty'}, Loading: ${loading}`
+    });
+
     const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-            const response = await fetch("https://pinterestclone-backend.onrender.com/api/login/", {
+            const response = await fetch(`${API_BASE_URL}/api/login/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password }),
             });
 
-            const data = await response.json();
-            if (response.ok) {
+            console.log("📦 LoginModal - Response status:", response.status);
+            
+            // Check if response has content before parsing
+            const text = await response.text();
+            console.log("📦 LoginModal - Raw response:", text);
+            
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error("❌ LoginModal - Failed to parse JSON:", e);
+                alert("Invalid response from server. Please try again.");
+                return;
+            }
+            
+            console.log("📦 LoginModal - Parsed response data:", data);
+            
+            if (response.ok && data.access) {
                 localStorage.setItem("accessToken", data.access);
+                if (data.refresh) {
+                    localStorage.setItem("refreshToken", data.refresh);
+                }
                 if (onLogin) onLogin();
                 onClose();
+                // Reload to refresh the app state
                 window.location.reload();
             } else {
-                alert("Login failed! Please check your credentials.");
+                alert(data.error || "Login failed! Please check your credentials.");
             }
         } catch (error) {
             alert("Login failed! Please try again.");
@@ -151,7 +180,7 @@ function LoginModal({ isOpen, onClose, onLogin }) {
                 </form>
 
                 <div style={{ textAlign: 'center', margin: '20px 0', color: '#767676' }}>OR</div>
-
+            <a href={`${API_BASE_URL}/accounts/google/login/?process=login`}>
                 <button
                     type="button"
                     style={{
@@ -172,6 +201,7 @@ function LoginModal({ isOpen, onClose, onLogin }) {
                 >
                     <span>G</span> Continue with Google
                 </button>
+                </a>
             </div>
         </div>
     );

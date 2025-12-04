@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import LoginModal from './LoginModal';
 import SignupModal from './SignupModal';
+import { useCopilotReadable } from '@copilotkit/react-core';
 
 import './Navigation.css';
 
@@ -8,6 +9,12 @@ function Navigation({ setIsAuthenticated }) {
     const [isLoginOpen, setIsLoginOpen] = useState(false);
     const [isSignupOpen, setIsSignupOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    
+     useCopilotReadable({
+        description: "Current navigation and authentication state",
+        value: `Login modal: ${isLoginOpen ? 'open' : 'closed'}, Signup modal: ${isSignupOpen ? 'open' : 'closed'}, Menu: ${isMenuOpen ? 'open' : 'closed'}, User: not authenticated`
+    });
+
 
     const handleLogin = () => {
         setIsAuthenticated(true);

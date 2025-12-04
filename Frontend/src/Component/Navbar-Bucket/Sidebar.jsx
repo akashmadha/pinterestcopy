@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Home, Compass, PlusCircle, Bell, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useCopilotReadable } from '@copilotkit/react-core';
 import "./sidebar.css";
 const Sidebar = () => {
   const [activeButton, setActiveButton] = useState(null);
@@ -11,7 +12,11 @@ const Sidebar = () => {
     navigate(path); // Navigate to the corresponding page
   };
 
-  
+  // ✅ ADD THIS: Share sidebar data with AI
+  useCopilotReadable({
+    description: "Current sidebar navigation state",
+    value: `Active tab: ${activeButton || 'none'}, Available tabs: home, explore, create, notifications, messages`
+  });
 
   return (
     <div className="sidebar">

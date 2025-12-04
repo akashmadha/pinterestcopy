@@ -5,6 +5,8 @@ import "./navbar.css"; // CSS for styling
 import SearchBar from "./SearchBar"; // Search input component
 import Profile from "./Profile"; // Profile avatar/info
 import FilterChips from "./FilterChips"; // Tag filter buttons
+import UserProfile from "./UserProfile";
+import { useCopilotReadable } from '@copilotkit/react-core';
 
 // ✅ Props are passed from parent (App.jsx usually)
 // These handle search + selected tags state
@@ -21,13 +23,18 @@ function Navbar({
   // 🧭 React Router hook to navigate between pages
   const navigate = useNavigate();
   // 👤 Store user details fetched from <Profile />
-  const [userDetails, setUserDetails] = useState({});
+  const [userDetails, setUserDetails] = useState(null);
 
   // 🔁 Toggles dropdown visibility
   const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
   // 🔁 Toggles mobile menu visibility
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
+  useCopilotReadable({
+  description: "Current navbar and search state",
+  value: `Search: "${searchQuery || ''}", Tags: ${(selectedTags || []).join(', ') || 'none'}, Dropdown: ${isDropdownOpen ? 'open' : 'closed'}, Mobile menu: ${isMobileMenuOpen ? 'open' : 'closed'}, User: ${userDetails ? userDetails.username : 'not loaded'}`
+});
+  
   // 🧠 Close dropdown automatically when clicking outside
   React.useEffect(() => {
     const closeDropdown = (event) => {
@@ -67,7 +74,7 @@ function Navbar({
           <div className={`nav-container ${isMobileMenuOpen ? "open" : ""}`}>
             <div className="profile-section">
               {/* Small profile circle */}
-              <Profile />
+              <Profile onUserData={(data) => setUserDetails(data)} />
 
               {/* Dropdown toggle button (chevron icon) */}
               <button className="profile-button" onClick={toggleDropdown}>
@@ -77,23 +84,28 @@ function Navbar({
               {/* Conditional render: dropdown only visible if open */}
               {isDropdownOpen && (
                 <div className="dropdown-menu">
-                  <ul>
-                    {/* 🧾 User info section */}
-                    <div className="m-ci">Currently in</div>
-                    <div className="m-user">
-                      {/* Renders Profile again but now passes user data up */}
-                      <Profile onUserData={(data) => setUserDetails(data)} />
-
-                      {/* Shows username and email */}
-                      <div className="m-ue">
-                        <p>
-                          <strong>Username:</strong> {userDetails.username}
-                        </p>
-                        <p>
-                          <strong>Email:</strong> {userDetails.email}
-                        </p>
-                      </div>
+                  <div className="m-ci">Currently in</div>
+                  <div className="user-info">
+                    <div className="user-initial">
+                      {(userDetails?.initial ||
+                        userDetails?.username ||
+                        userDetails?.email ||
+                        "?")
+                        .charAt(0)
+                        .toUpperCase()}
                     </div>
+                    <div className="user-details">
+                      <p className="username">
+                        {userDetails?.displayName ||
+                          userDetails?.username ||
+                          "Loading..."}
+                      </p>
+                      <p className="email">
+                        {userDetails?.email || "Fetching email..."}
+                      </p>
+                    </div>
+                  </div>
+                  <ul>
 
                     {/* 🔧 Dropdown links */}
                     <li>
@@ -101,6 +113,9 @@ function Navbar({
                     </li>
                     <li>
                       <Link to="/logout">Logout</Link>
+                    </li>
+                     <li>
+                      <Link to="/UserProfile">UserProfile</Link>
                     </li>
                   </ul>
                 </div>

@@ -1,6 +1,11 @@
 import React from "react";
+import { useCopilotReadable } from '@copilotkit/react-core';
 
 function Home() {
+    useCopilotReadable({
+    description: "Welcome to Pinterest signup section",
+    value: `Password inspiration grid`
+  });
   return <h1></h1>;
 }
 

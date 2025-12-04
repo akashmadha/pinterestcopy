@@ -1,3 +1,7 @@
+
+
+
+
 main {
     padding-top: 0;
     padding-bottom: 0;
@@ -79,7 +83,7 @@ main {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1rem;
-    margin-top: 3rem;
+    margin-top: 7rem;
 }
 
 /* Responsive adjustments - only for smaller screens */

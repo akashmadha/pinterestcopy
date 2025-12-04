@@ -1,9 +1,18 @@
 import React from "react";
 import PropTypes from "prop-types";
 import "./FilterChips.css"; // optional styling file
+import { useCopilotReadable } from '@copilotkit/react-core';
 
 function FilterChips({ selectedTags = [], setSelectedTags = () => {} }) {
   const tags = ["Nature", "Animals", "Food", "Travel", "Technology", "People"];
+
+
+   // ✅ ADD THIS: Share filter state with AI
+  useCopilotReadable({
+    description: "Current filter tags state",
+    value: `Available tags: ${tags.join(', ')}, Active filters: ${selectedTags.join(', ') || 'none'}`
+  });
+
 
   const toggleTag = (tag) => {
     if (selectedTags.includes(tag)) {

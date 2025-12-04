@@ -1,11 +1,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import './SearchBar.css'; // 🎨 styling for the search bar
+import { useCopilotReadable } from '@copilotkit/react-core';
 
 // ✅ Functional component that takes two props:
 // - searchQuery → the current text in the input
 // - setSearchQuery → function to update that text in parent state
 function SearchBar({ searchQuery, setSearchQuery }) {
+   useCopilotReadable({
+    description: "Current search state",
+    value: `Search query: "${searchQuery}"`
+  });
+  
   return (
     <div className="search-bar">
       {/* 🔍 Input field bound to searchQuery */}
@@ -19,6 +25,7 @@ function SearchBar({ searchQuery, setSearchQuery }) {
     </div>
   );
 }
+
 
 // 🛡️ Prop type validation (helps catch bugs in dev)
 SearchBar.propTypes = {

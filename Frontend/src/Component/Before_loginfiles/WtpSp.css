@@ -285,3 +285,18 @@
 .login-link:hover {
     text-decoration: underline;
 }
+
+@media (max-width: 450px) {
+.image-grid2{
+    grid-template-columns: repeat(5, 2fr);
+}
+.image-box{
+        width: 33vw;
+    height: 45vh;
+
+}
+.signup-image-grid{
+    display: block;
+    height: 0;
+}
+}

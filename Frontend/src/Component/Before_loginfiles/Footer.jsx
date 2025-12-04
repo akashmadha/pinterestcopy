@@ -1,7 +1,13 @@
 import React from 'react';
 import './Footer.css'; // Import the external CSS file
+import { useCopilotReadable } from '@copilotkit/react-core';
 
 function Footer() {
+  useCopilotReadable({
+  description: "Footer navigation links",
+  value: "Footer with navigation links: Terms, Privacy, Help, Mobile apps, etc."
+});
+
   return (
     <footer className="footer">
       <div className="footer-container">

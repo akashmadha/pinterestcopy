@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import API_BASE_URL from '../../config';
+import { useCopilotReadable } from '@copilotkit/react-core';
 
 function SignupModal({ isOpen, onClose, onSignup }) {
     const [username, setUsername] = useState('');
@@ -7,13 +9,20 @@ function SignupModal({ isOpen, onClose, onSignup }) {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
 
+
+    // ✅ ADD THIS: Share signup form state with AI
+    useCopilotReadable({
+        description: "Current signup form state",
+        value: `Signup modal: ${isOpen ? 'open' : 'closed'}, Username: ${username || 'empty'}, Email: ${email || 'empty'}, Loading: ${loading}, Message: ${message || 'none'}`
+    });
+
     const handleSignup = async (e) => {
         e.preventDefault();
         setLoading(true);
         setMessage('');
 
         try {
-            const response = await fetch("https://pinterestclone-backend.onrender.com/api/register/", {
+            const response = await fetch(`${API_BASE_URL}/api/register/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, email, password }),
@@ -193,26 +202,28 @@ function SignupModal({ isOpen, onClose, onSignup }) {
 
                 <div style={{ textAlign: 'center', margin: '20px 0', color: '#767676' }}>OR</div>
 
-                <button
-                    type="button"
-                    style={{
-                        width: '100%',
-                        padding: '16px',
-                        backgroundColor: '#4285f4',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '24px',
-                        fontSize: '16px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '10px'
-                    }}
-                >
-                    <span>G</span> Continue with Google
-                </button>
+                <a href={`${API_BASE_URL}/accounts/google/login/?process=login`} style={{ textDecoration: 'none' }}>
+                    <button
+                        type="button"
+                        style={{
+                            width: '100%',
+                            padding: '16px',
+                            backgroundColor: '#4285f4',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '24px',
+                            fontSize: '16px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '10px'
+                        }}
+                    >
+                        <span>G</span> Continue with Google
+                    </button>
+                </a>
             </div>
         </div>
     );
