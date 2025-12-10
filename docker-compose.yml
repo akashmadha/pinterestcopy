@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: mydb
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://pinterestcopy_user:srRrNxIwMMqlZ7AKvm2ShktkbCFmm7n0@dpg-d4nf4vumcj7s73etn9mg-a.oregon-postgres.render.com/pinterestcopy
+      DJANGO_SECRET_KEY: "dev-secret"
+      DEBUG: "1"
+    depends_on:
+      - db
+
+volumes:
+  pgdata:
