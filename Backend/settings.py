@@ -190,7 +190,8 @@ AUTHENTICATION_BACKENDS = (
 SITE_ID = 1
 
 # Redirect Google OAuth to our custom callback that generates JWT tokens
-LOGIN_REDIRECT_URL = '/api/google/callback/'
+LOGIN_REDIRECT_URL = 'http://localhost:3000/dashboard'  # Your frontend page after login
+SOCIALACCOUNT_LOGIN_REDIRECT_URL = 'http://localhost:3000/'
 LOGOUT_REDIRECT_URL = '/'
 
 ACCOUNT_EMAIL_VERIFICATION = "none"
