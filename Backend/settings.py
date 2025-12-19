@@ -287,7 +287,7 @@ print(f"   - SOCIALACCOUNT_ADAPTER: {SOCIALACCOUNT_ADAPTER}")
 
 print("🔥 USING Backend.settings 🔥")
 
-FRONTEND_URL = "https://pinterestcopy-mkp2.vercel.app/"
+FRONTEND_URL = "http://localhost:3000"
 
 LOGIN_REDIRECT_URL = "/api/accounts/google/jwt/"
 

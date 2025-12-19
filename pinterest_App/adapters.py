@@ -1,7 +1,7 @@
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 
-FRONTEND_URL = "https://pinterestcopy-mkp2.vercel.app"
+FRONTEND_URL = "http://localhost:3000"
 
 
 class CustomAccountAdapter(DefaultAccountAdapter):
