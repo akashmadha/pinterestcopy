@@ -1,7 +1,9 @@
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 
-FRONTEND_URL = "http://localhost:3000"
+# 🔧 PRODUCTION FIX: Use environment variable for frontend URL
+import os
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 
 class CustomAccountAdapter(DefaultAccountAdapter):

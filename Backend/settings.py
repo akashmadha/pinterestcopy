@@ -67,16 +67,24 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
 ]
 
-# CORS settings
+# 🔧 PRODUCTION FIX: CORS settings for both development and production
 CORS_ALLOWED_ORIGINS = [
+    # Development URLs
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    
+    # Production URLs
+    "https://pinterestcopy.onrender.com",  # Backend URL
+    "https://pinterestcopy-mkp2.vercel.app",  # Main Vercel URL
+    "https://pinterestcopy-mkp2-6vyfhtv24-ngo-linkup.vercel.app",  # Deployment-specific Vercel URL
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
-# Allow all for development
-CORS_ALLOW_ALL_ORIGINS = True
+# 🔧 SECURITY: Disable CORS_ALLOW_ALL_ORIGINS in production
+# For development: allows all origins (convenient but insecure)
+# For production: comment out this line and use CORS_ALLOWED_ORIGINS instead
+CORS_ALLOW_ALL_ORIGINS = os.getenv("DEBUG", "False") == "True"
 
 ROOT_URLCONF = 'Backend.urls'
 
@@ -249,20 +257,29 @@ SOCIALACCOUNT_PROVIDERS = {
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
 
+# 🔧 PRODUCTION FIX: CSRF trusted origins for both development and production
 CSRF_TRUSTED_ORIGINS = [
+    # Development URLs
     "http://127.0.0.1:8000",
     "http://127.0.0.1:3000",
-
     "http://localhost:8000",
     "http://localhost:3000",
-   
+    
+    # Production URLs - Render Backend
+    "https://pinterestcopy.onrender.com",
+    
+    # Production Vercel URLs
+    "https://pinterestcopy-mkp2.vercel.app",
+    "https://pinterestcopy-mkp2-6vyfhtv24-ngo-linkup.vercel.app",
 ]
 
-# Important: These settings make cookies work between React and Django
-SESSION_COOKIE_SAMESITE = 'Lax'  # Use 'None' if using HTTPS in development
-SESSION_COOKIE_SECURE = False    # Set to True in production with HTTPS
-CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_SECURE = False
+# 🔧 PRODUCTION FIX: Cookie settings for both development and production
+# These settings make cookies work between React and Django
+# In production with HTTPS, these should be more secure
+SESSION_COOKIE_SAMESITE = 'None' if not DEBUG else 'Lax'  # 'None' required for cross-site in production
+SESSION_COOKIE_SECURE = not DEBUG  # True in production with HTTPS
+CSRF_COOKIE_SAMESITE = 'None' if not DEBUG else 'Lax'
+CSRF_COOKIE_SECURE = not DEBUG  # True in production with HTTPS
 
 # For allauth to work properly
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'http'  # Use 'https' in production
@@ -287,7 +304,11 @@ print(f"   - SOCIALACCOUNT_ADAPTER: {SOCIALACCOUNT_ADAPTER}")
 
 print("🔥 USING Backend.settings 🔥")
 
-FRONTEND_URL = "http://localhost:3000"
+# 🔧 PRODUCTION FIX: Frontend URL for redirects - supports both development and production
+# For development: uses localhost:3000
+# For production: set FRONTEND_URL environment variable to your Vercel domain
+# Example: FRONTEND_URL=https://your-app.vercel.app
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 LOGIN_REDIRECT_URL = "/api/accounts/google/jwt/"
 
