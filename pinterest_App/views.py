@@ -184,6 +184,11 @@ def save_image(request):
         return Response({"message": "Already saved!"}, status=status.HTTP_200_OK)
 
 
+
+
+
+
+
 # -----------------------------------------
 # 2) Get all saved images of the user (GET)
 # -----------------------------------------
@@ -197,90 +202,176 @@ def get_saved_images(request):
     
     return Response(serializer.data)
 
+# views.py - Keep it simple
+from django.http import JsonResponse
+from django.middleware.csrf import get_token
 
-# -----------------------------------------
-# Google OAuth Callback - Returns JWT tokens
-# -----------------------------------------
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth import login
 
-@csrf_exempt
-def google_oauth_callback(request):
+
+
+
+def get_current_user(request):
+    """API endpoint that React calls after redirect"""
+    if request.user.is_authenticated:
+        return JsonResponse({
+            'isAuthenticated': True,
+            'id': request.user.id,
+            'username': request.user.username,
+            'email': request.user.email,
+            'firstName': request.user.first_name,
+            'lastName': request.user.last_name,
+        })
+    return JsonResponse({
+        'isAuthenticated': False,
+        'message': 'Not authenticated'
+    })
+
+
+
+def get_csrf_token(request):
+    """Get CSRF token for React if needed"""
+    return JsonResponse({'csrfToken': get_token(request)})
+
+
+from django.shortcuts import redirect
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.conf import settings
+from allauth.socialaccount.models import SocialAccount
+from allauth.socialaccount.signals import pre_social_login, social_account_added
+from django.dispatch import receiver
+
+def google_login_success(request):
     """
-    Custom callback for Google OAuth that returns JWT tokens.
-    This view handles the redirect from Google after authentication.
+    This view is called after successful Google OAuth.
+    It generates JWT tokens and redirects to React with the tokens.
     """
-    try:
-        print(f"🔍 Google OAuth callback called. User authenticated: {request.user.is_authenticated}")
-        print(f"🔍 Session key: {request.session.session_key}")
-        print(f"🔍 User: {request.user if hasattr(request, 'user') else 'No user attribute'}")
-        
-        # Check if user is authenticated via allauth social account
-        if request.user.is_authenticated:
-            user = request.user
-            
-            # Generate JWT tokens
-            refresh = RefreshToken.for_user(user)
-            access_token = str(refresh.access_token)
-            refresh_token = str(refresh)
-            
-            print(f"✅ Google OAuth successful: {user.username} (ID: {user.id})")
-            
-            # Get frontend URL from settings or use default
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
-            frontend_url = f"{frontend_url}/google-callback"
-            
-            tokens = {
-                'access': access_token,
-                'refresh': refresh_token,
-                'username': user.username,
-                'email': user.email if user.email else ''
-            }
-            
-            # Use URL hash to pass tokens (won't be sent to server)
-            redirect_url = f"{frontend_url}#{urlencode(tokens)}"
-            print(f"🔀 Redirecting to: {frontend_url}")
-            return redirect(redirect_url)
-        
-        else:
-            # User not authenticated, redirect to login
-            print("❌ Google OAuth failed: User not authenticated")
-            print(f"🔍 Session data: {dict(request.session)}")
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
-            return redirect(f"{frontend_url}/login?error=oauth_failed")
+    print(f"🔥 Google login success view called")
+    print(f"   - User: {request.user}")
+    print(f"   - Is authenticated: {request.user.is_authenticated}")
+    print(f"   - Request method: {request.method}")
+    print(f"   - Request path: {request.path}")
     
-    except Exception as e:
-        import traceback
-        print(f"❌ Google OAuth callback error: {str(e)}")
-        print(f"🔍 Traceback: {traceback.format_exc()}")
-        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
-        return redirect(f"{frontend_url}/login?error={str(e)}")
+    if not request.user.is_authenticated:
+        print("❌ User not authenticated, redirecting to login")
+        return redirect(f"{settings.FRONTEND_URL}/login?error=auth_failed")
+
+    # Generate JWT tokens for the authenticated user
+    refresh = RefreshToken.for_user(request.user)
+    access_token = str(refresh.access_token)
+    refresh_token = str(refresh)
+    
+    print(f"✅ Generated tokens for user: {request.user.username} (ID: {request.user.id})")
+    print(f"   - Access token length: {len(access_token)}")
+    print(f"   - Refresh token length: {len(refresh_token)}")
+    
+    # Redirect to React with tokens as URL parameters
+    redirect_url = (
+        f"{settings.FRONTEND_URL}/auth/google/callback"
+        f"?access={access_token}&refresh={refresh_token}"
+        f"&user_id={request.user.id}&username={request.user.username}"
+    )
+    
+    print(f"🔄 Redirecting to: {redirect_url[:100]}...")
+    return redirect(redirect_url)
 
 
-# -----------------------------------------
-# Alternative: API endpoint to get tokens after Google login
-# -----------------------------------------
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def google_oauth_token(request):
-    """
-    Alternative endpoint: If user is logged in via session (from allauth),
-    return JWT tokens as JSON. Frontend can poll this after redirect.
-    """
-    try:
-        if request.user.is_authenticated:
-            user = request.user
-            refresh = RefreshToken.for_user(user)
-            
-            return Response({
-                'access': str(refresh.access_token),
-                'refresh': str(refresh),
-                'username': user.username,
-                'email': user.email if user.email else ''
-            })
-        else:
-            return Response({'error': 'User not authenticated'}, status=401)
+def test_google_auth(request):
+    """Test endpoint to debug Google OAuth flow"""
+    print(f"🧪 Test Google Auth endpoint called")
+    print(f"   - User: {request.user}")
+    print(f"   - Is authenticated: {request.user.is_authenticated}")
     
-    except Exception as e:
-        print(f"❌ Google OAuth token error: {str(e)}")
-        return Response({'error': str(e)}, status=400)
+    if request.user.is_authenticated:
+        refresh = RefreshToken.for_user(request.user)
+        return JsonResponse({
+            'status': 'success',
+            'user': request.user.username,
+            'access_token': str(refresh.access_token),
+            'refresh_token': str(refresh)
+        })
+    else:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'User not authenticated'
+        })
+
+
+# Signal handlers for debugging Google OAuth flow
+@receiver(pre_social_login)
+def debug_pre_social_login(sender, request, sociallogin, **kwargs):
+    print("🔥 PRE_SOCIAL_LOGIN signal received")
+    print(f"   - User: {sociallogin.user}")
+    print(f"   - Account: {sociallogin.account}")
+
+
+@receiver(social_account_added)
+def debug_social_account_added(sender, request, sociallogin, **kwargs):
+    print("🔥 SOCIAL_ACCOUNT_ADDED signal received")
+    print(f"   - User: {sociallogin.user}")
+    print(f"   - Account: {sociallogin.account}")
+    
+    # This is where we can redirect after successful social login
+    # But signals don't allow us to return a redirect response
+
+
+def custom_google_callback(request):
+    """
+    🔧 MAIN FIX: Custom Google OAuth callback that intercepts the allauth flow
+    
+    PROBLEM SOLVED: The original issue was a redirect loop where:
+    1. User clicks Google login → /api/accounts/google/login/
+    2. Redirects to Google → User authenticates
+    3. Google redirects back → /api/accounts/google/login/callback/
+    4. Allauth processes OAuth but then redirects back to step 1 (LOOP!)
+    
+    SOLUTION: This custom view intercepts the callback URL and:
+    1. Lets allauth handle the OAuth authentication process
+    2. After successful auth, generates JWT tokens
+    3. Redirects to React with tokens (breaking the loop)
+    
+    This prevents the infinite redirect loop by providing a proper exit point.
+    """
+    print("🔥 CUSTOM GOOGLE CALLBACK called")
+    print(f"   - GET params: {dict(request.GET)}")
+    print(f"   - User before: {request.user}")
+    print(f"   - Is authenticated before: {request.user.is_authenticated}")
+    
+    # Import allauth's Google callback view
+    from allauth.socialaccount.providers.google.views import oauth2_callback
+    
+    # 🔧 STEP 1: Let allauth handle the OAuth process (user authentication)
+    response = oauth2_callback(request)
+    
+    print(f"   - User after allauth: {request.user}")
+    print(f"   - Is authenticated after: {request.user.is_authenticated}")
+    print(f"   - Response status: {response.status_code}")
+    
+    # 🔧 STEP 2: If allauth processed successfully and user is authenticated
+    if request.user.is_authenticated:
+        print("✅ User authenticated by allauth, generating JWT tokens")
+        
+        # 🔧 STEP 3: Generate JWT tokens for the authenticated user
+        refresh = RefreshToken.for_user(request.user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+        
+        # 🔧 STEP 4: Redirect to React with tokens (BREAKS THE LOOP!)
+        # Instead of redirecting back to Django, we go to React with tokens
+        redirect_url = (
+            f"{settings.FRONTEND_URL}/auth/google/callback"
+            f"?access={access_token}&refresh={refresh_token}"
+            f"&user_id={request.user.id}&username={request.user.username}"
+        )
+        
+        print(f"🔄 Redirecting to React: {redirect_url[:100]}...")
+        return redirect(redirect_url)
+    
+    # If authentication failed, return the original allauth response
+    print("❌ Authentication failed, returning original response")
+    return response
+
+
+
+

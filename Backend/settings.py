@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'pinterest_App',
     'rest_framework.authtoken',
+     "django_extensions",
 
      # Allauth
     'django.contrib.sites',
@@ -52,9 +53,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -189,24 +190,41 @@ AUTHENTICATION_BACKENDS = (
 
 SITE_ID = 1
 
-# Redirect Google OAuth to our custom callback that generates JWT tokens
-LOGIN_REDIRECT_URL = 'http://localhost:3000/dashboard'  # Your frontend page after login
-SOCIALACCOUNT_LOGIN_REDIRECT_URL = 'http://localhost:3000/'
-LOGOUT_REDIRECT_URL = '/'
+
+
 
 ACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_EMAIL_REQUIRED = False
 SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_QUERY_EMAIL = True
 
+# Session settings for OAuth
+SESSION_COOKIE_AGE = 3600  # 1 hour
+SESSION_SAVE_EVERY_REQUEST = True
+
 # Skip the confirmation page and go directly to Google OAuth
 SOCIALACCOUNT_LOGIN_ON_GET = True
 ACCOUNT_LOGOUT_ON_GET = True
 SOCIALACCOUNT_STORE_TOKENS = True
 
+# Prevent allauth from trying to redirect to accounts/profile/
+ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = "/api/accounts/google/jwt/"
+ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = "/api/accounts/google/jwt/"
+
 # Skip email confirmation for social accounts
 ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
 ACCOUNT_UNIQUE_EMAIL = True
+
+REST_AUTH = {
+    'USE_JWT': True,
+    'JWT_AUTH_COOKIE': None,
+    'JWT_AUTH_REFRESH_COOKIE': None,
+    'JWT_AUTH_HTTPONLY': False,
+    'JWT_AUTH_RETURN_EXPIRATION': True,
+    'REGISTER_SERIALIZER': 'dj_rest_auth.registration.serializers.RegisterSerializer',
+}
+
+
 
 # Google OAuth provider settings
 SOCIALACCOUNT_PROVIDERS = {
@@ -220,28 +238,57 @@ SOCIALACCOUNT_PROVIDERS = {
         },
         'OAUTH_PKCE_ENABLED': True,
        'APP': {
-            'client_id': os.getenv("GOOGLE_CLIENT_ID"),
-            'secret': os.getenv("GOOGLE_CLIENT_SECRET"),
+            'client_id': os.getenv("CLIENT_ID"),
+            'secret': os.getenv("CLIENT_SECRET"),
             'key': ''
         }
     }
 }
 
-# Custom adapter for social accounts
-SOCIALACCOUNT_ADAPTER = 'pinterest_App.adapters.CustomSocialAccountAdapter'
+
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
 
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8000",
+    "http://127.0.0.1:3000",
+
     "http://localhost:8000",
     "http://localhost:3000",
-    "http://127.0.0.1:3000",
+   
 ]
+
+# Important: These settings make cookies work between React and Django
+SESSION_COOKIE_SAMESITE = 'Lax'  # Use 'None' if using HTTPS in development
+SESSION_COOKIE_SECURE = False    # Set to True in production with HTTPS
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SECURE = False
+
+# For allauth to work properly
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'http'  # Use 'https' in production
 
 # Exempt API endpoints from CSRF since we're using JWT authentication
 CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
 CSRF_USE_SESSIONS = False
 
-# Frontend URL for OAuth redirects
+
+
+
+ACCOUNT_LOGIN_METHODS = {'username', 'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email', 'username*', 'password1*', 'password2*']
+
+ACCOUNT_ADAPTER = "pinterest_App.adapters.CustomAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "pinterest_App.adapters.CustomSocialAccountAdapter"
+
+# Debug: Print adapter configuration
+print("🔧 ADAPTER CONFIGURATION:")
+print(f"   - ACCOUNT_ADAPTER: {ACCOUNT_ADAPTER}")
+print(f"   - SOCIALACCOUNT_ADAPTER: {SOCIALACCOUNT_ADAPTER}")
+
+print("🔥 USING Backend.settings 🔥")
+
 FRONTEND_URL = "http://localhost:3000"
 
+LOGIN_REDIRECT_URL = "/api/accounts/google/jwt/"
 
+LOGOUT_REDIRECT_URL = f"{FRONTEND_URL}/login"

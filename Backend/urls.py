@@ -26,6 +26,5 @@ urlpatterns = [
      path('', home),     
     path('admin/', admin.site.urls),
     path('api/', include('pinterest_App.urls')),
-     path('accounts/', include('allauth.urls')),
-]
+]   
 

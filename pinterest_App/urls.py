@@ -1,36 +1,74 @@
-"""
-URL configuration for Backend project.
+# pinterest_App/urls.py (APP LEVEL)
+# 
+# 🔧 GOOGLE OAUTH REDIRECT LOOP FIX SUMMARY:
+# ==========================================
+# 
+# ORIGINAL PROBLEM:
+# - User clicks Google login → redirects to Google → Google redirects back
+# - But then Django would redirect back to Google again (infinite loop!)
+# - The callback URL /api/accounts/google/login/callback/ wasn't properly handled
+# 
+# ROOT CAUSE:
+# - Allauth's default callback behavior was causing redirects back to the login URL
+# - Token storage was inconsistent (some places used "access_token", others "accessToken")
+# - React routing had duplicate callback routes with different components
+# 
+# SOLUTION IMPLEMENTED:
+# 1. Custom callback view intercepts allauth's callback URL (line 19)
+# 2. Lets allauth handle OAuth, then generates JWT tokens
+# 3. Redirects to React with tokens as URL parameters
+# 4. Fixed token storage consistency across frontend
+# 5. Fixed React routing conflicts
+# 
+# KEY FILES MODIFIED:
+# - Backend/pinterest_App/urls.py (this file) - Custom callback URL override
+# - Backend/pinterest_App/views.py - Custom callback view implementation  
+# - Backend/Backend/settings.py - Added FRONTEND_URL, fixed LOGIN_REDIRECT_URL
+# - Frontend/src/Component/GoogleCallback.jsx - Fixed token storage naming
+# - Frontend/src/utils/auth.js - Fixed token checking consistency
+# - Frontend/src/App.js - Fixed duplicate routing conflicts
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.1/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
-# pinterest_App/urls.py
-from django.urls import path
-from django.views.decorators.csrf import csrf_exempt
+from django.urls import path, include
 from . import views
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
+    # ========== AUTH ENDPOINTS ==========
     path('register/', views.register, name='register'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout, name='logout'),
     path('profile/', views.check_auth, name='profile'),
+    path('check-auth/', views.check_auth, name='check_auth'),
+    path('current-user/', views.get_current_user, name='current-user'),
+    
+    # ========== IMAGE ENDPOINTS ==========
+    path('save/', views.save_image, name='save-image'),
+    path('saved/', views.get_saved_images, name='saved-images'),
+    
+    # ========== GOOGLE OAUTH ==========
+    # 🔧 CRITICAL FIX: Override the default allauth callback URL
+    # This intercepts /api/accounts/google/login/callback/ BEFORE allauth processes it
+    # Our custom view handles OAuth completion and prevents redirect loops
+    path('accounts/google/login/callback/', views.custom_google_callback, name='google_oauth2_callback'),
+    
+    # Include other allauth URLs (login, logout, etc.)
+    # Note: Our custom callback above takes precedence over allauth's default callback
+    path('accounts/', include('allauth.urls')),  # This creates /api/accounts/
+    
+    # Custom JWT endpoint for Google OAuth success
+    path(
+        "accounts/google/jwt/",
+        views.google_login_success,
+        name="google_jwt",
+    ),
+    
+    # Test endpoint to debug OAuth flow
+    path(
+        "test-google-auth/",
+        views.test_google_auth,
+        name="test_google_auth",
+    ),
+    # ========== JWT TOKENS ==========
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('check-auth/', views.check_auth, name='check_auth'),
-    path("save/", views.save_image, name="save-image"),
-    path("saved/", views.get_saved_images, name="saved-images"),
-    # Google OAuth endpoints
-    path('google/callback/', views.google_oauth_callback, name='google_oauth_callback'),
-    path('google/token/', views.google_oauth_token, name='google_oauth_token'),
 ]
