@@ -296,16 +296,29 @@ def test_google_auth(request):
     
     # Get Google OAuth settings
     google_settings = settings.SOCIALACCOUNT_PROVIDERS.get('google', {})
+    app_config = google_settings.get('APP', {})
     
-    # Get the actual redirect URI that will be sent to Google
-    provider = GoogleProvider(request)
+    # Check if SocialApp exists in database
+    from allauth.socialaccount.models import SocialApp
+    try:
+        social_apps = SocialApp.objects.filter(provider='google')
+        social_app_info = []
+        for app in social_apps:
+            social_app_info.append({
+                'client_id': app.client_id[:30] + '...',
+                'sites': [s.domain for s in app.sites.all()]
+            })
+    except Exception as e:
+        social_app_info = f"Error: {str(e)}"
     
     return JsonResponse({
         'status': 'debug',
         'user_authenticated': request.user.is_authenticated,
         'username': request.user.username if request.user.is_authenticated else None,
         'callback_url': callback_url,
-        'google_client_id': google_settings.get('APP', {}).get('client_id', 'NOT SET'),
+        'settings_client_id': app_config.get('client_id', 'NOT SET')[:30] + '...' if app_config.get('client_id') else 'NOT SET',
+        'settings_has_secret': bool(app_config.get('secret')),
+        'database_social_apps': social_app_info,
         'frontend_url': settings.FRONTEND_URL,
         'site_id': settings.SITE_ID,
         'account_default_http_protocol': settings.ACCOUNT_DEFAULT_HTTP_PROTOCOL,
