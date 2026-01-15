@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse
+from pinterest_App import views
 
 def home(request):
     return HttpResponse("<h1>Pinterest Clone Backend Running Successfully</h1>")
@@ -26,5 +27,9 @@ urlpatterns = [
      path('', home),     
     path('admin/', admin.site.urls),
     path('api/', include('pinterest_App.urls')),
+    # Add custom Google OAuth callback handler BEFORE allauth URLs
+    path('accounts/google/login/callback/', views.custom_google_callback, name='google_oauth2_callback'),
+    # Add allauth URLs at root level (for OAuth callbacks)
+    path('accounts/', include('allauth.urls')),
 ]   
 

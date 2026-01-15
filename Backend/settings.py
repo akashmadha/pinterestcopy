@@ -276,6 +276,8 @@ REST_AUTH = {
 
 
 # Google OAuth provider settings
+# NOTE: Client ID and Secret are configured via Django Admin (SocialApp model)
+# or via the fix_google_oauth management command
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': [
@@ -286,11 +288,8 @@ SOCIALACCOUNT_PROVIDERS = {
             'access_type': 'online',
         },
         'OAUTH_PKCE_ENABLED': True,
-       'APP': {
-            'client_id': os.getenv("GOOGLE_CLIENT_ID"),
-            'secret': os.getenv("GOOGLE_CLIENT_SECRET"),
-            'key': ''
-        }
+        # Don't hardcode APP here - it should be in database (SocialApp model)
+        # This allows dynamic configuration without code changes
     }
 }
 

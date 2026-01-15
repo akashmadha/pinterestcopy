@@ -53,15 +53,6 @@ urlpatterns = [
     path('saved/', views.get_saved_images, name='saved-images'),
     
     # ========== GOOGLE OAUTH ==========
-    # 🔧 CRITICAL FIX: Override the default allauth callback URL
-    # This intercepts /api/accounts/google/login/callback/ BEFORE allauth processes it
-    # Our custom view handles OAuth completion and prevents redirect loops
-    path('accounts/google/login/callback/', views.custom_google_callback, name='google_oauth2_callback'),
-    
-    # Include other allauth URLs (login, logout, etc.)
-    # Note: Our custom callback above takes precedence over allauth's default callback
-    path('accounts/', include('allauth.urls')),  # This creates /api/accounts/
-    
     # Custom JWT endpoint for Google OAuth success
     path(
         "accounts/google/jwt/",
