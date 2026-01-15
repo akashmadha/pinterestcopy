@@ -283,19 +283,34 @@ def test_google_auth(request):
     print(f"   - User: {request.user}")
     print(f"   - Is authenticated: {request.user.is_authenticated}")
     
-    if request.user.is_authenticated:
-        refresh = RefreshToken.for_user(request.user)
-        return JsonResponse({
-            'status': 'success',
-            'user': request.user.username,
-            'access_token': str(refresh.access_token),
-            'refresh_token': str(refresh)
-        })
-    else:
-        return JsonResponse({
-            'status': 'error',
-            'message': 'User not authenticated'
-        })
+    # Show the exact callback URL that Django will use
+    from django.urls import reverse
+    from django.conf import settings
+    from allauth.socialaccount.providers.google.provider import GoogleProvider
+    
+    try:
+        callback_url = request.build_absolute_uri(reverse('google_oauth2_callback'))
+        print(f"   - Callback URL: {callback_url}")
+    except Exception as e:
+        callback_url = f"Could not determine callback URL: {str(e)}"
+    
+    # Get Google OAuth settings
+    google_settings = settings.SOCIALACCOUNT_PROVIDERS.get('google', {})
+    
+    # Get the actual redirect URI that will be sent to Google
+    provider = GoogleProvider(request)
+    
+    return JsonResponse({
+        'status': 'debug',
+        'user_authenticated': request.user.is_authenticated,
+        'username': request.user.username if request.user.is_authenticated else None,
+        'callback_url': callback_url,
+        'google_client_id': google_settings.get('APP', {}).get('client_id', 'NOT SET'),
+        'frontend_url': settings.FRONTEND_URL,
+        'site_id': settings.SITE_ID,
+        'account_default_http_protocol': settings.ACCOUNT_DEFAULT_HTTP_PROTOCOL,
+        'debug_mode': settings.DEBUG,
+    })
 
 
 # Signal handlers for debugging Google OAuth flow

@@ -198,6 +198,47 @@ AUTHENTICATION_BACKENDS = (
 
 SITE_ID = 1
 
+# 🔧 AUTO-FIX: Update Site domain for Google OAuth
+# This ensures the redirect URI matches your actual domain
+def fix_site_domain():
+    """Automatically fix the Site domain on startup"""
+    try:
+        from django.contrib.sites.models import Site
+        import os
+        
+        # Determine the correct domain based on environment
+        if os.environ.get("RENDER"):
+            domain = "pinterestcopy.onrender.com"
+        else:
+            domain = "localhost:8000"
+        
+        site, created = Site.objects.get_or_create(
+            id=SITE_ID,
+            defaults={'domain': domain, 'name': 'Pinterest Copy'}
+        )
+        
+        if site.domain != domain:
+            site.domain = domain
+            site.save()
+            print(f"✅ Updated Site domain to: {domain}")
+        else:
+            print(f"✅ Site domain already correct: {domain}")
+            
+        print(f"🔗 OAuth callback URL: {ACCOUNT_DEFAULT_HTTP_PROTOCOL}://{domain}/api/accounts/google/login/callback/")
+        
+    except Exception as e:
+        print(f"⚠️ Could not update Site domain: {e}")
+        print("   This is normal on first migration. Will fix on next restart.")
+
+# Call the fix function (will run on Django startup)
+import sys
+if 'migrate' not in sys.argv and 'makemigrations' not in sys.argv:
+    # Don't run during migrations to avoid database errors
+    try:
+        fix_site_domain()
+    except:
+        pass  # Ignore errors during initial setup
+
 
 
 
@@ -282,7 +323,7 @@ CSRF_COOKIE_SAMESITE = 'None' if not DEBUG else 'Lax'
 CSRF_COOKIE_SECURE = not DEBUG  # True in production with HTTPS
 
 # For allauth to work properly
-ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'http'  # Use 'https' in production
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https' if not DEBUG else 'http'
 
 # Exempt API endpoints from CSRF since we're using JWT authentication
 CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
