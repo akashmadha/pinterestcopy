@@ -27,8 +27,6 @@ urlpatterns = [
      path('', home),     
     path('admin/', admin.site.urls),
     path('api/', include('pinterest_App.urls')),
-    # Add custom Google OAuth callback handler BEFORE allauth URLs
-    path('accounts/google/login/callback/', views.custom_google_callback, name='google_oauth2_callback'),
     # Add allauth URLs at root level (for OAuth callbacks)
     path('accounts/', include('allauth.urls')),
 ]   

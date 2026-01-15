@@ -333,59 +333,70 @@ def debug_social_account_added(sender, request, sociallogin, **kwargs):
 
 def custom_google_callback(request):
     """
-    🔧 MAIN FIX: Custom Google OAuth callback that intercepts the allauth flow
+    🔧 Custom Google OAuth callback that handles the complete OAuth flow
     
-    PROBLEM SOLVED: The original issue was a redirect loop where:
-    1. User clicks Google login → /api/accounts/google/login/
-    2. Redirects to Google → User authenticates
-    3. Google redirects back → /api/accounts/google/login/callback/
-    4. Allauth processes OAuth but then redirects back to step 1 (LOOP!)
-    
-    SOLUTION: This custom view intercepts the callback URL and:
-    1. Lets allauth handle the OAuth authentication process
-    2. After successful auth, generates JWT tokens
-    3. Redirects to React with tokens (breaking the loop)
-    
-    This prevents the infinite redirect loop by providing a proper exit point.
+    This view:
+    1. Receives the OAuth callback from Google
+    2. Lets allauth process the OAuth and create/login the user
+    3. Generates JWT tokens
+    4. Redirects to React with tokens
     """
     print("🔥 CUSTOM GOOGLE CALLBACK called")
     print(f"   - GET params: {dict(request.GET)}")
     print(f"   - User before: {request.user}")
     print(f"   - Is authenticated before: {request.user.is_authenticated}")
     
-    # Import allauth's Google callback view
-    from allauth.socialaccount.providers.google.views import oauth2_callback
-    
-    # 🔧 STEP 1: Let allauth handle the OAuth process (user authentication)
-    response = oauth2_callback(request)
-    
-    print(f"   - User after allauth: {request.user}")
-    print(f"   - Is authenticated after: {request.user.is_authenticated}")
-    print(f"   - Response status: {response.status_code}")
-    
-    # 🔧 STEP 2: If allauth processed successfully and user is authenticated
-    if request.user.is_authenticated:
-        print("✅ User authenticated by allauth, generating JWT tokens")
+    try:
+        # Import allauth's Google callback view
+        from allauth.socialaccount.providers.google.views import oauth2_callback
         
-        # 🔧 STEP 3: Generate JWT tokens for the authenticated user
-        refresh = RefreshToken.for_user(request.user)
-        access_token = str(refresh.access_token)
-        refresh_token = str(refresh)
+        # 🔧 STEP 1: Let allauth handle the OAuth process (user authentication)
+        # This processes the OAuth code, creates/gets the user, and logs them in
+        response = oauth2_callback(request)
         
-        # 🔧 STEP 4: Redirect to React with tokens (BREAKS THE LOOP!)
-        # Instead of redirecting back to Django, we go to React with tokens
-        redirect_url = (
-            f"{settings.FRONTEND_URL}/auth/google/callback"
-            f"?access={access_token}&refresh={refresh_token}"
-            f"&user_id={request.user.id}&username={request.user.username}"
-        )
+        print(f"   - User after allauth: {request.user}")
+        print(f"   - Is authenticated after: {request.user.is_authenticated}")
+        print(f"   - Response type: {type(response)}")
+        print(f"   - Response status: {response.status_code if hasattr(response, 'status_code') else 'N/A'}")
         
-        print(f"🔄 Redirecting to React: {redirect_url[:100]}...")
-        return redirect(redirect_url)
-    
-    # If authentication failed, return the original allauth response
-    print("❌ Authentication failed, returning original response")
-    return response
+        # 🔧 STEP 2: Check if user is authenticated after allauth processing
+        if request.user.is_authenticated:
+            print("✅ User authenticated by allauth, generating JWT tokens")
+            
+            # 🔧 STEP 3: Generate JWT tokens for the authenticated user
+            refresh = RefreshToken.for_user(request.user)
+            access_token = str(refresh.access_token)
+            refresh_token = str(refresh)
+            
+            # 🔧 STEP 4: Redirect to React with tokens
+            redirect_url = (
+                f"{settings.FRONTEND_URL}/auth/google/callback"
+                f"?access={access_token}&refresh={refresh_token}"
+                f"&user_id={request.user.id}&username={request.user.username}"
+            )
+            
+            print(f"🔄 Redirecting to React: {redirect_url[:100]}...")
+            return redirect(redirect_url)
+        
+        # If user is not authenticated, check if response is a redirect
+        # Allauth might be redirecting to complete signup
+        if hasattr(response, 'status_code') and response.status_code in [301, 302, 303, 307, 308]:
+            print(f"⚠️ Allauth returned redirect: {response.get('Location', 'unknown')}")
+            # Follow the redirect - allauth might need to complete signup
+            return response
+        
+        # If authentication failed, redirect to frontend with error
+        print("❌ Authentication failed after allauth processing")
+        return redirect(f"{settings.FRONTEND_URL}/login?error=auth_failed")
+        
+    except Exception as e:
+        print(f"❌ Error in custom_google_callback: {str(e)}")
+        print(f"   - Exception type: {type(e)}")
+        import traceback
+        print(f"   - Traceback: {traceback.format_exc()}")
+        
+        # Redirect to frontend with error
+        return redirect(f"{settings.FRONTEND_URL}/login?error=oauth_error")
 
 
 
