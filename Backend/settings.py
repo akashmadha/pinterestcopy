@@ -230,12 +230,52 @@ def fix_site_domain():
         print(f"⚠️ Could not update Site domain: {e}")
         print("   This is normal on first migration. Will fix on next restart.")
 
-# Call the fix function (will run on Django startup)
+
+def setup_google_oauth():
+    """Automatically setup Google OAuth SocialApp on startup"""
+    try:
+        from allauth.socialaccount.models import SocialApp
+        from django.contrib.sites.models import Site
+        import os
+        
+        # Check if Google SocialApp already exists
+        if SocialApp.objects.filter(provider='google').exists():
+            print("✅ Google OAuth SocialApp already configured")
+            return
+        
+        # Get credentials from environment
+        client_id = os.getenv('GOOGLE_CLIENT_ID')
+        client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
+        
+        if not client_id or not client_secret:
+            print("⚠️ GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not set")
+            print("   Google OAuth will not work until these are configured")
+            return
+        
+        # Create SocialApp
+        site = Site.objects.get(id=SITE_ID)
+        social_app = SocialApp.objects.create(
+            provider='google',
+            name='Google OAuth',
+            client_id=client_id,
+            secret=client_secret,
+        )
+        social_app.sites.add(site)
+        
+        print(f"✅ Created Google OAuth SocialApp with client ID: {client_id[:30]}...")
+        
+    except Exception as e:
+        print(f"⚠️ Could not setup Google OAuth: {e}")
+        print("   Run 'python manage.py setup_google_oauth' manually")
+
+
+# Call the fix functions (will run on Django startup)
 import sys
 if 'migrate' not in sys.argv and 'makemigrations' not in sys.argv:
     # Don't run during migrations to avoid database errors
     try:
         fix_site_domain()
+        setup_google_oauth()
     except:
         pass  # Ignore errors during initial setup
 
