@@ -27,7 +27,8 @@ urlpatterns = [
      path('', home),     
     path('admin/', admin.site.urls),
     path('api/', include('pinterest_App.urls')),
-    # Add allauth URLs at root level (for OAuth callbacks)
+    # Add allauth URLs at BOTH root and /api/ level to handle both redirect URIs
     path('accounts/', include('allauth.urls')),
+    path('api/accounts/', include('allauth.urls')),  # Also handle /api/accounts/ for backward compatibility
 ]   
 
