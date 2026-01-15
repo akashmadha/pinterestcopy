@@ -25,11 +25,11 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
     
     def get_login_redirect_url(self, request):
         print("🔥 SOCIAL ADAPTER - get_login_redirect_url called")
-        print(f"   - User: {request.user}")
-        print(f"   - Is authenticated: {request.user.is_authenticated}")
+        print(f"   - User: {request.user if hasattr(request, 'user') else 'No user'}")
+        print(f"   - Is authenticated: {request.user.is_authenticated if hasattr(request, 'user') else False}")
         
-        if request.user and request.user.is_authenticated:
-            try:
+        try:
+            if hasattr(request, 'user') and request.user and request.user.is_authenticated:
                 # Generate JWT tokens
                 refresh = RefreshToken.for_user(request.user)
                 access_token = str(refresh.access_token)
@@ -44,10 +44,11 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
                 
                 print(f"✅ Redirecting to React with tokens")
                 return redirect_url
-            except Exception as e:
-                print(f"❌ Error generating tokens: {e}")
-                return f"{FRONTEND_URL}/login?error=token_generation_failed"
-        
-        # Fallback if user is not authenticated
-        print("⚠️ User not authenticated, redirecting to login")
-        return f"{FRONTEND_URL}/login?error=auth_failed"
+            else:
+                print("⚠️ User not authenticated or not available")
+                return f"{FRONTEND_URL}/login?error=auth_failed"
+        except Exception as e:
+            print(f"❌ Error in adapter: {e}")
+            import traceback
+            print(traceback.format_exc())
+            return f"{FRONTEND_URL}/login?error=adapter_error"

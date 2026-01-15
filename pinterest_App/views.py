@@ -237,8 +237,6 @@ from django.shortcuts import redirect
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
 from allauth.socialaccount.models import SocialAccount
-from allauth.socialaccount.signals import pre_social_login, social_account_added
-from django.dispatch import receiver
 
 def google_login_success(request):
     """
@@ -326,22 +324,7 @@ def test_google_auth(request):
     })
 
 
-# Signal handlers for debugging Google OAuth flow
-@receiver(pre_social_login)
-def debug_pre_social_login(sender, request, sociallogin, **kwargs):
-    print("🔥 PRE_SOCIAL_LOGIN signal received")
-    print(f"   - User: {sociallogin.user}")
-    print(f"   - Account: {sociallogin.account}")
-
-
-@receiver(social_account_added)
-def debug_social_account_added(sender, request, sociallogin, **kwargs):
-    print("🔥 SOCIAL_ACCOUNT_ADDED signal received")
-    print(f"   - User: {sociallogin.user}")
-    print(f"   - Account: {sociallogin.account}")
-    
-    # This is where we can redirect after successful social login
-    # But signals don't allow us to return a redirect response
+# Signal handlers removed - they were causing errors by accessing user before it was created
 
 
 def custom_google_callback(request):
