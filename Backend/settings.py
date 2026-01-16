@@ -224,7 +224,8 @@ def fix_site_domain():
         else:
             print(f"✅ Site domain already correct: {domain}")
             
-        print(f"🔗 OAuth callback URL: {ACCOUNT_DEFAULT_HTTP_PROTOCOL}://{domain}/accounts/google/login/callback/")
+        # Print the correct callback URL that should be in Google Console
+        print(f"🔗 OAuth callback URL should be: {ACCOUNT_DEFAULT_HTTP_PROTOCOL}://{domain}/accounts/google/login/callback/")
         
     except Exception as e:
         print(f"⚠️ Could not update Site domain: {e}")
