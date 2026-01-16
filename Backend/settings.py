@@ -354,6 +354,12 @@ print("🔥 USING Backend.settings 🔥")
 # Example: FRONTEND_URL=https://your-app.vercel.app
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
+# ✅ CRITICAL: This tells allauth where to redirect after successful OAuth
+# It should point to our custom view that generates JWT tokens
 LOGIN_REDIRECT_URL = "/api/accounts/google/jwt/"
+
+# Alternative: Use the adapter's redirect instead of LOGIN_REDIRECT_URL
+# The adapter will be called and should generate tokens
+SOCIALACCOUNT_LOGIN_ON_GET = True
 
 LOGOUT_REDIRECT_URL = f"{FRONTEND_URL}/login"

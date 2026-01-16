@@ -24,9 +24,16 @@ def home(request):
 
 
 urlpatterns = [
-     path('', home),     
+    path('', home),     
     path('admin/', admin.site.urls),
+    
+    # 🔧 CRITICAL: Custom Google OAuth callback MUST come BEFORE allauth URLs
+    # This intercepts the callback and generates JWT tokens
+    path('api/accounts/google/login/callback/', views.custom_google_callback, name='google_callback_override'),
+    
+    # Now include the rest of the app URLs
     path('api/', include('pinterest_App.urls')),
+    
     # Add allauth URLs at BOTH root and /api/ level to handle both redirect URIs
     path('accounts/', include('allauth.urls')),
     path('api/accounts/', include('allauth.urls')),  # Also handle /api/accounts/ for backward compatibility
