@@ -1,41 +1,71 @@
-"""
-URL configuration for Backend project.
+# ========================================
+# 🌐 MAIN URL CONFIGURATION
+# ========================================
+#
+# Simple Explanation:
+# This file tells Django which URLs go to which views.
+# Think of it as a "phone book" for your website.
+#
+# CRITICAL FOR GOOGLE LOGIN:
+# The ORDER of URLs matters! Our custom callback MUST come
+# BEFORE the allauth URLs, otherwise allauth will handle
+# the callback and won't generate JWT tokens.
+#
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.1/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse
 from pinterest_App import views
 
 def home(request):
+    """Simple home page showing the backend is running"""
     return HttpResponse("<h1>Pinterest Clone Backend Running Successfully</h1>")
 
 
 urlpatterns = [
-    path('', home),     
-    path('admin/', admin.site.urls),
+    # ========================================
+    # 🏠 HOME & ADMIN
+    # ========================================
+    path('', home),                    # Root URL: https://pinterestcopy.onrender.com/
+    path('admin/', admin.site.urls),   # Admin panel: https://pinterestcopy.onrender.com/admin/
     
-    # 🔧 CRITICAL: Custom Google OAuth callback MUST come BEFORE allauth URLs
-    # This intercepts the callback and generates JWT tokens
-    path('api/accounts/google/login/callback/', views.custom_google_callback, name='google_callback_override'),
+    # ========================================
+    # 🔧 CRITICAL: CUSTOM GOOGLE OAUTH CALLBACK
+    # ========================================
+    # This MUST come BEFORE allauth URLs!
+    # 
+    # Why? When Google sends user back after login, Django checks URLs from top to bottom.
+    # If we put this AFTER allauth URLs, allauth will handle it and won't generate JWT tokens.
+    # 
+    # URL: https://pinterestcopy.onrender.com/api/accounts/google/login/callback/
+    # Handler: views.custom_google_callback (in pinterest_App/views.py)
+    #
+    path('api/accounts/google/login/callback/', 
+         views.custom_google_callback, 
+         name='google_callback_override'),
     
-    # Now include the rest of the app URLs
+    # ========================================
+    # 📱 APP URLs (Login, Register, Images, etc.)
+    # ========================================
+    # All URLs starting with /api/ go to pinterest_App/urls.py
+    # Examples:
+    # - /api/login/
+    # - /api/register/
+    # - /api/save/
+    # - /api/saved/
     path('api/', include('pinterest_App.urls')),
     
-    # Add allauth URLs at BOTH root and /api/ level to handle both redirect URIs
+    # ========================================
+    # 🔵 DJANGO-ALLAUTH URLs (Google OAuth)
+    # ========================================
+    # These handle the Google OAuth flow
+    # 
+    # Two URL patterns for backward compatibility:
+    # 1. /accounts/google/login/ - Standard allauth pattern
+    # 2. /api/accounts/google/login/ - Our custom pattern
+    #
+    # Both work, but we use /api/accounts/ for consistency
     path('accounts/', include('allauth.urls')),
-    path('api/accounts/', include('allauth.urls')),  # Also handle /api/accounts/ for backward compatibility
+    path('api/accounts/', include('allauth.urls')),
 ]   
 

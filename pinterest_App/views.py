@@ -329,69 +329,119 @@ def test_google_auth(request):
 
 def custom_google_callback(request):
     """
-    🔧 Custom Google OAuth callback that handles the complete OAuth flow
+    ========================================
+    🔧 CUSTOM GOOGLE OAUTH CALLBACK HANDLER
+    ========================================
     
-    This view:
-    1. Receives the OAuth callback from Google
-    2. Lets allauth process the OAuth and create/login the user
+    Simple Explanation:
+    This is the MOST IMPORTANT function for Google login!
+    When Google sends the user back after login, this function:
+    1. Receives the user from Google
+    2. Lets Django authenticate them
     3. Generates JWT tokens
-    4. Redirects to React with tokens
+    4. Sends them to React with the tokens
+    
+    Why do we need this?
+    Without this custom handler, Django would just redirect to /home
+    without giving React the JWT tokens. Then React wouldn't know
+    the user is logged in!
+    
+    Flow:
+    1. User logs in with Google ✅
+    2. Google sends them back to: /api/accounts/google/login/callback/?code=ABC123
+    3. THIS FUNCTION runs
+    4. Django processes the code and logs in the user
+    5. We generate JWT tokens
+    6. We redirect to React with tokens: /auth/google/callback?access=TOKEN1&refresh=TOKEN2
+    7. React saves tokens and user is logged in! ✅
     """
-    print("🔥 CUSTOM GOOGLE CALLBACK called")
-    print(f"   - GET params: {dict(request.GET)}")
-    print(f"   - User before: {request.user}")
+    print("🔥 CUSTOM GOOGLE CALLBACK - Starting OAuth processing")
+    print(f"   - URL parameters: {dict(request.GET)}")
+    print(f"   - User before OAuth: {request.user}")
     print(f"   - Is authenticated before: {request.user.is_authenticated}")
     
     try:
-        # Import allauth's Google callback view
+        # Import Django-allauth's Google callback handler
         from allauth.socialaccount.providers.google.views import oauth2_callback
         
-        # 🔧 STEP 1: Let allauth handle the OAuth process (user authentication)
-        # This processes the OAuth code, creates/gets the user, and logs them in
+        # ========================================
+        # STEP 1: Let Django-allauth handle the OAuth process
+        # ========================================
+        # This does the heavy lifting:
+        # - Validates the code from Google
+        # - Gets user info from Google (email, name, etc.)
+        # - Creates or gets the user in our database
+        # - Logs them in
         response = oauth2_callback(request)
         
-        print(f"   - User after allauth: {request.user}")
+        print(f"   - User after OAuth: {request.user}")
         print(f"   - Is authenticated after: {request.user.is_authenticated}")
         print(f"   - Response type: {type(response)}")
         print(f"   - Response status: {response.status_code if hasattr(response, 'status_code') else 'N/A'}")
         
-        # 🔧 STEP 2: Check if user is authenticated after allauth processing
+        # ========================================
+        # STEP 2: Check if user is authenticated
+        # ========================================
         if request.user.is_authenticated:
-            print("✅ User authenticated by allauth, generating JWT tokens")
+            print("✅ User authenticated successfully!")
+            print(f"   - Username: {request.user.username}")
+            print(f"   - Email: {request.user.email}")
+            print(f"   - User ID: {request.user.id}")
             
-            # 🔧 STEP 3: Generate JWT tokens for the authenticated user
+            # ========================================
+            # STEP 3: Generate JWT tokens
+            # ========================================
+            # These tokens are like digital keys that prove the user is logged in
             refresh = RefreshToken.for_user(request.user)
-            access_token = str(refresh.access_token)
-            refresh_token = str(refresh)
+            access_token = str(refresh.access_token)   # Short-lived (~24 hours)
+            refresh_token = str(refresh)                # Long-lived (~7 days)
             
-            # 🔧 STEP 4: Redirect to React with tokens
+            print(f"   - Generated access token: {len(access_token)} characters")
+            print(f"   - Generated refresh token: {len(refresh_token)} characters")
+            
+            # ========================================
+            # STEP 4: Build redirect URL with tokens
+            # ========================================
+            # Send user to React with tokens in the URL
+            # React will grab these tokens and save them
             redirect_url = (
                 f"{settings.FRONTEND_URL}/auth/google/callback"
                 f"?access={access_token}&refresh={refresh_token}"
                 f"&user_id={request.user.id}&username={request.user.username}"
             )
             
-            print(f"🔄 Redirecting to React: {redirect_url[:100]}...")
+            print(f"🔄 Redirecting to React with tokens")
+            print(f"   - URL: {redirect_url[:100]}...")
+            
             return redirect(redirect_url)
         
-        # If user is not authenticated, check if response is a redirect
-        # Allauth might be redirecting to complete signup
+        # ========================================
+        # STEP 2B: User not authenticated - check if redirect needed
+        # ========================================
+        # Sometimes Django-allauth needs to redirect to complete signup
         if hasattr(response, 'status_code') and response.status_code in [301, 302, 303, 307, 308]:
-            print(f"⚠️ Allauth returned redirect: {response.get('Location', 'unknown')}")
+            print(f"⚠️ Django-allauth returned redirect")
+            print(f"   - Location: {response.get('Location', 'unknown')}")
             # Follow the redirect - allauth might need to complete signup
             return response
         
-        # If authentication failed, redirect to frontend with error
-        print("❌ Authentication failed after allauth processing")
+        # ========================================
+        # ERROR: Authentication failed
+        # ========================================
+        print("❌ Authentication failed - user not logged in")
         return redirect(f"{settings.FRONTEND_URL}/login?error=auth_failed")
         
     except Exception as e:
+        # ========================================
+        # ERROR: Something went wrong
+        # ========================================
         print(f"❌ Error in custom_google_callback: {str(e)}")
         print(f"   - Exception type: {type(e)}")
         import traceback
-        print(f"   - Traceback: {traceback.format_exc()}")
+        print(f"   - Full traceback:")
+        print(traceback.format_exc())
         
-        # Redirect to frontend with error
+        # Send user back to login with error message
         return redirect(f"{settings.FRONTEND_URL}/login?error=oauth_error")
 
 
